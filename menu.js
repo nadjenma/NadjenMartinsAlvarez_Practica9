@@ -68,17 +68,114 @@ async function nuevoEvento() {
     if (verificarConflicto(resultado.fecha, resultado.duracion)) {
         console.log("Ya hay un evento programado en ese horario");
         menu();
-        return;
     }
 
     agenda.push(resultado);
     fs.writeFileSync("./agenda.json", JSON.stringify(agenda, null, 2));
     console.log("Evento añadido correctamente");
+    menu();
 }
 
 function verEventosHoy() {
-    let ordenado = [];
-    for (let cadaEvento of agenda) {
-        
+    const eventosHoy = agenda.filter(evento => {
+        const fechaEvento = DateTime.fromISO(evento.fecha);
+        return fechaEvento.hasSame(DateTime.now(), 'day');
+    });
+    
+    let eventosHoyFormateado = [];
+
+    for (let cadaEvento of eventosHoy) {
+        const fechaInicio = DateTime.fromISO(cadaEvento.fecha);
+        const fechaFin = fechaInicio.plus({ minutes: cadaEvento.duracion });
+        const eventoFormateado = `
+Título: ${cadaEvento.titulo}
+Fecha de inicio: ${cadaEvento.fecha}
+Fecha de fin: ${fechaFin.toISO()}
+`;
+        eventosHoyFormateado.push(eventoFormateado);
     }
+    if (eventosHoyFormateado.length <= 0) {
+        console.log("No hay eventos planeados para esta fecha\n")
+    } else {
+        eventosHoyFormateado.sort()
+        for (let cadaEvento of eventosHoyFormateado) {
+            console.log(cadaEvento);
+        }
+    }
+    menu();
+};
+
+async function buscarEventos() {
+    let año = await new Promise(resolve => rl.question("Introduce el año\n", resolve));
+    let mes = await new Promise(resolve => rl.question("Introduce el mes\n", resolve));
+    let dia = await new Promise(resolve => rl.question("Introduce el día\n", resolve));
+
+    const fechaBuscada = DateTime.fromObject({ year: parseInt(año), month: parseInt(mes), day: parseInt(dia) });
+
+    const eventosFecha = agenda.filter(evento => {
+        const fechaEvento = DateTime.fromISO(evento.fecha);
+        return fechaEvento.hasSame(fechaBuscada, 'day');
+    });
+    
+    let eventosFechaFormateado = [];
+
+    for (let cadaEvento of eventosFecha) {
+        const fechaInicio = DateTime.fromISO(cadaEvento.fecha);
+        const fechaFin = fechaInicio.plus({ minutes: cadaEvento.duracion });
+        const eventoFormateado = `
+Título: ${cadaEvento.titulo}
+Fecha de inicio: ${cadaEvento.fecha}
+Fecha de fin: ${fechaFin.toISO()}
+`;
+        eventosFechaFormateado.push(eventoFormateado);
+    }
+    if (eventosFechaFormateado.length <= 0) {
+        console.log("No hay eventos planeados para esta fecha\n")
+    } else {
+        eventosFechaFormateado.sort()
+        for (let cadaEvento of eventosFechaFormateado) {
+            console.log(cadaEvento);
+        }
+    }
+    menu();
+};
+
+async function borrarEvento() {
+    if (agenda.length === 0) {
+        console.log("No hay eventos creados\n");
+        menu();
+        return;
+    }
+
+    let eventosFormateado = [];
+    let i = 1;
+
+    for (let cadaEvento of agenda) {
+        const fechaInicio = DateTime.fromISO(cadaEvento.fecha);
+        const fechaFin = fechaInicio.plus({ minutes: cadaEvento.duracion });
+        const eventoFormateado = `
+${i}.   Título: ${cadaEvento.titulo}
+        Fecha de inicio: ${cadaEvento.fecha}
+        Fecha de fin: ${fechaFin.toISO()}
+`;
+        eventosFormateado.push(eventoFormateado);
+        i++;
+    }
+
+    for (let cadaEvento of eventosFormateado) {
+        console.log(cadaEvento);
+    }
+
+    let numero = await new Promise(resolve => rl.question("¿Cuál quieres borrar? (número)\n", resolve));
+    let index = parseInt(numero) - 1;
+
+    if (index >= 0 && index < agenda.length) {
+        agenda.splice(index, 1);
+        fs.writeFileSync("./agenda.json", JSON.stringify(agenda, null, 2));
+        console.log("Evento borrado correctamente\n");
+    } else {
+        console.log("Número inválido");
+    }
+
+    menu();
 }
