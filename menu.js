@@ -1,5 +1,4 @@
 const readline = require("readline")
-const luxon = require("luxon")
 const fs = require("fs");
 const agenda = require("./agenda.json");
 const { DateTime } = require("luxon");
@@ -9,7 +8,10 @@ const rl = readline.createInterface({
     output: process.stdout
 });
 
-let zonaHoraria = (DateTime.now().offset / 60) < 10 ? `+0${DateTime.now().offset / 60}:00` : `+${DateTime.now().offset / 60}:00`;
+const offset = DateTime.now().offset / 60;
+const signo = offset >= 0 ? "+" : "-";
+const horas = String(Math.abs(offset)).padStart(2, "0");
+let zonaHoraria = `${signo}${horas}:00`;
 
 function verificarConflicto(nuevaFecha, duracionNueva) {
     const inicio = DateTime.fromISO(nuevaFecha);
@@ -45,6 +47,7 @@ function menu() {
                 break;
             default:
                 console.log("Opción inválida");
+                menu();
                 break;
         };
     });
@@ -68,6 +71,7 @@ async function nuevoEvento() {
     if (verificarConflicto(resultado.fecha, resultado.duracion)) {
         console.log("Ya hay un evento programado en ese horario");
         menu();
+        return;
     }
 
     agenda.push(resultado);
